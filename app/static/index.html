@@ -106,44 +106,197 @@
           </a>
         </div>
 
-        <div class="pipeline" aria-label="Các bước CI/CD">
-          <article class="pipeline-step">
-            <div class="step-index">01</div><div class="step-symbol">⌁</div>
-            <h3>Push to main</h3>
-            <p>GitHub nhận commit và khởi động workflow theo trigger.</p>
-            <span>push · pull_request</span>
-          </article>
-          <div class="connector" aria-hidden="true">→</div>
-          <article class="pipeline-step">
-            <div class="step-index">02</div><div class="step-symbol">✓</div>
-            <h3>Test</h3>
-            <p>Python 3.11 cài dependency và chạy toàn bộ checkpoint offline.</p>
-            <span>pytest · fake Redis</span>
-          </article>
-          <div class="connector" aria-hidden="true">→</div>
-          <article class="pipeline-step">
-            <div class="step-index">03</div><div class="step-symbol">⬡</div>
-            <h3>Build image</h3>
-            <p>Runner sạch build Docker image multi-stage từ đúng commit.</p>
-            <span>BuildKit · non-root</span>
-          </article>
-          <div class="connector" aria-hidden="true">→</div>
-          <article class="pipeline-step is-accent">
-            <div class="step-index">04</div><div class="step-symbol">↗</div>
-            <h3>Deploy Render</h3>
-            <p>Deploy hook chạy sau test/build và chờ health check trả 200.</p>
-            <span>/healthz · production</span>
-          </article>
+        <div class="pipeline-legend" aria-label="Chú thích sơ đồ">
+          <span><i class="legend-dot trigger"></i> Git / Trigger</span>
+          <span><i class="legend-dot ci"></i> Continuous Integration</span>
+          <span><i class="legend-dot cd"></i> Continuous Delivery</span>
+          <span><i class="legend-dot guard"></i> Nhánh chặn lỗi</span>
         </div>
 
+        <div class="cicd-diagram" aria-label="Sơ đồ chi tiết GitHub Actions và CI/CD">
+          <div class="pipeline-lane lane-git">
+            <div class="lane-label"><span>GIT</span><strong>Developer &amp; GitHub</strong></div>
+            <div class="lane-content lane-linear">
+              <article class="flow-node node-trigger">
+                <span class="flow-number">01</span>
+                <div class="flow-icon">⌨</div>
+                <div>
+                  <h3>Code → Commit</h3>
+                  <p>Lập trình viên hoàn thiện thay đổi và tạo một commit cục bộ.</p>
+                  <code>git add -A &amp;&amp; git commit</code>
+                </div>
+              </article>
+              <div class="flow-arrow" aria-hidden="true"><span>push</span>→</div>
+              <article class="flow-node node-trigger">
+                <span class="flow-number">02</span>
+                <div class="flow-icon">⑂</div>
+                <div>
+                  <h3>Push / Pull Request</h3>
+                  <p>GitHub ghi nhận sự kiện hướng tới nhánh <code>main</code>.</p>
+                  <code>git push origin main</code>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <div class="lane-down" aria-hidden="true"><span>on: push · pull_request</span>↓</div>
+
+          <div class="pipeline-lane lane-ci">
+            <div class="lane-label"><span>CI</span><strong>GitHub Actions</strong></div>
+            <div class="lane-content">
+              <article class="flow-node node-ci workflow-trigger">
+                <span class="flow-number">03</span>
+                <div class="flow-icon">⚡</div>
+                <div>
+                  <h3>Khởi tạo workflow</h3>
+                  <p>Runner Ubuntu sạch được cấp cho mỗi job; source được checkout theo đúng SHA.</p>
+                  <code>actions/checkout@v4</code>
+                </div>
+              </article>
+
+              <div class="parallel-label"><span></span><b>Hai job chạy song song</b><span></span></div>
+
+              <div class="parallel-jobs">
+                <article class="flow-node node-ci job-node">
+                  <span class="flow-number">04A</span>
+                  <div class="flow-icon">✓</div>
+                  <div>
+                    <h3>Job: Test</h3>
+                    <ol>
+                      <li>Cài Python 3.11 và cache pip</li>
+                      <li>Cài <code>requirements.txt</code></li>
+                      <li>Dùng <code>API_TOKEN=ci-dummy</code></li>
+                      <li>Dùng Redis giả <code>fake://</code></li>
+                      <li>Chạy pytest offline CP1–CP4</li>
+                    </ol>
+                  </div>
+                </article>
+
+                <article class="flow-node node-ci job-node">
+                  <span class="flow-number">04B</span>
+                  <div class="flow-icon">⬡</div>
+                  <div>
+                    <h3>Job: Build Docker</h3>
+                    <ol>
+                      <li>Checkout cùng commit SHA</li>
+                      <li>Build image multi-stage</li>
+                      <li>Xác minh dependency và source đủ</li>
+                      <li>Xác minh image chạy non-root</li>
+                      <li>Tag tạm <code>day12-chat:$SHA</code></li>
+                    </ol>
+                  </div>
+                </article>
+              </div>
+
+              <div class="merge-lines" aria-hidden="true"><span></span><span></span></div>
+
+              <article class="quality-gate">
+                <span class="flow-number">05</span>
+                <div class="gate-diamond"><span>?</span></div>
+                <div>
+                  <h3>Quality Gate</h3>
+                  <p><code>deploy</code> khai báo <code>needs: [test, build]</code>, nên phải đợi cả hai job.</p>
+                </div>
+              </article>
+
+              <div class="gate-branches">
+                <div class="branch-failed">
+                  <span class="branch-line">FAIL ←</span>
+                  <strong>⛔ Dừng pipeline</strong>
+                  <small>Không gọi Render; production cũ vẫn hoạt động.</small>
+                </div>
+                <div class="branch-success">
+                  <span class="branch-line">→ PASS</span>
+                  <strong>Cho phép deploy</strong>
+                  <small>Chỉ tiếp tục nếu đây là push vào <code>main</code>.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lane-down success-down" aria-hidden="true"><span>push main + test/build xanh</span>↓</div>
+
+          <div class="pipeline-lane lane-cd">
+            <div class="lane-label"><span>CD</span><strong>GitHub Actions → Render</strong></div>
+            <div class="lane-content cd-grid">
+              <article class="flow-node node-cd">
+                <span class="flow-number">06</span>
+                <div class="flow-icon">🔐</div>
+                <div>
+                  <h3>Gọi Deploy Hook</h3>
+                  <p>Job Deploy lấy URL từ GitHub Secret rồi gửi HTTP POST tới Render.</p>
+                  <code>RENDER_DEPLOY_HOOK_URL</code>
+                </div>
+              </article>
+              <div class="flow-arrow" aria-hidden="true"><span>POST</span>→</div>
+              <article class="flow-node node-cd">
+                <span class="flow-number">07</span>
+                <div class="flow-icon">◈</div>
+                <div>
+                  <h3>Render tạo deployment</h3>
+                  <p>Render lấy code mới nhất của <code>main</code> và tự build lại bằng Dockerfile.</p>
+                  <code>Dockerfile → production image</code>
+                </div>
+              </article>
+              <div class="flow-arrow" aria-hidden="true"><span>start</span>→</div>
+              <article class="flow-node node-cd">
+                <span class="flow-number">08</span>
+                <div class="flow-icon">▶</div>
+                <div>
+                  <h3>Khởi động service</h3>
+                  <p>Render inject biến môi trường, kết nối Redis và chạy Uvicorn trên <code>$PORT</code>.</p>
+                  <code>API_TOKEN · REDIS_URL</code>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <div class="lane-down" aria-hidden="true"><span>poll tối đa 60 × 10 giây</span>↓</div>
+
+          <div class="pipeline-lane lane-production">
+            <div class="lane-label"><span>PROD</span><strong>Verify &amp; Serve</strong></div>
+            <div class="lane-content production-flow">
+              <article class="flow-node node-production">
+                <span class="flow-number">09</span>
+                <div class="flow-icon">♡</div>
+                <div>
+                  <h3>Health verification</h3>
+                  <p>GitHub Actions gọi URL public cho tới khi liveness trả HTTP 200.</p>
+                  <code>GET /healthz → 200 OK</code>
+                </div>
+              </article>
+              <div class="flow-arrow" aria-hidden="true"><span>healthy</span>→</div>
+              <article class="flow-node node-production live-node">
+                <span class="flow-number">10</span>
+                <div class="flow-icon">●</div>
+                <div>
+                  <h3>Production Live</h3>
+                  <p>Deployment hoàn tất; người dùng truy cập dashboard và API qua HTTPS.</p>
+                  <code>/ · /healthz · /readyz · /chat</code>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <aside class="presentation-note">
+          <div class="presentation-note-title"><span>🎤</span><strong>Cách trình bày sơ đồ</strong></div>
+          <p>
+            <b>CI</b> trả lời “commit có vượt qua kiểm thử và đóng gói được không?”.
+            <b>CD</b> chỉ bắt đầu sau Quality Gate, gọi Render triển khai và xác nhận service sống.
+            Pull Request đi qua CI nhưng bị bỏ qua bước Deploy; chỉ <code>push main</code> mới thay đổi production.
+          </p>
+        </aside>
+
         <div class="pipeline-footer">
-          <div><span class="dot dot-green"></span> Workflow dùng action đã ghim phiên bản</div>
-          <div><span class="dot dot-blue"></span> Secret nằm trong GitHub Secrets</div>
+          <div><span class="dot dot-green"></span> Actions được ghim phiên bản</div>
+          <div><span class="dot dot-blue"></span> Secret không xuất hiện trong source</div>
+          <div><span class="dot dot-amber"></span> GitHub build để kiểm chứng; Render build để chạy</div>
           <a
             href="https://github.com/quangha-dev/K4-DAY12-2A202601424-NguyenQuangHa/blob/main/.github/workflows/ci.yml"
             target="_blank"
             rel="noreferrer"
-          >Xem ci.yml ↗</a>
+          >Đối chiếu ci.yml ↗</a>
         </div>
       </section>
 
