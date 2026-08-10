@@ -12,7 +12,7 @@
 |-----|----------|
 | Họ và tên | Nguyễn Quang Hà |
 | Mã học viên | 2A202601424 |
-| Repo | https://github.com/quangha-dev/K4-Day12-2A202601424-NguyenQuangHa |
+| Repo | https://github.com/quangha-dev/K4-DAY12-2A202601424-NguyenQuangHa |
 
 ## Service
 
