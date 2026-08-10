@@ -74,6 +74,19 @@ Your service is live
 - `screenshots/healthz.png`: endpoint public trả JSON `status=ok`.
 - `DEPLOYMENT.md`: URL, tên biến môi trường và output kiểm tra đã được ghi lại.
 
+## Kết quả CI/CD bonus
+
+GitHub Actions run #3 cho commit `5131333` hoàn tất thành công trong 39 giây.
+Workflow đã chạy ba job theo đúng thứ tự: test offline, build Docker image, sau
+đó trigger Render deploy và đợi `/healthz` trả thành công. Secret deploy hook
+và URL public được lấy từ GitHub Secrets/Variables, không hardcode trong YAML.
+
+```text
+pytest tests/test_bonus_cicd.py -v
+13 passed
+README badge: passing
+```
+
 ## Ghi chú cảnh báo
 
 Pytest có thể in `StarletteDeprecationWarning` từ tổ hợp phiên bản
