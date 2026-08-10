@@ -5,10 +5,12 @@
 
 services:
   - type: web
-    name: day12-chat
+    name: k4-day12-2a202601424-nguyenquangha
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: free
+    region: singapore
+    autoDeployTrigger: off
     healthCheckPath: /healthz
     envVars:
       - key: API_TOKEN
@@ -23,11 +25,12 @@ services:
         value: "1.0"
       - key: REDIS_URL
         fromService:
-          name: day12-chat-redis
-          type: redis
+          name: k4-day12-redis-2a202601424
+          type: keyvalue
           property: connectionString
 
-  - type: redis
-    name: day12-chat-redis
+  - type: keyvalue
+    name: k4-day12-redis-2a202601424
     plan: free
+    region: singapore
     ipAllowList: []
