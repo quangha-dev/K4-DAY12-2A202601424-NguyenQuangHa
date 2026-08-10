@@ -5,6 +5,24 @@
 Đưa một chat service từ `localhost:8000` lên một địa chỉ công khai mà người khác
 gọi được, có bảo mật, có giới hạn chi phí, và không sập khi bạn deploy bản mới.
 
+## Production Dashboard
+
+Mở route gốc `/` để xem giao diện vận hành trực quan:
+
+- trạng thái liveness `/healthz` và Redis readiness `/readyz`;
+- workflow GitHub Actions theo luồng Test → Build Docker → Deploy Render;
+- cấu trúc Docker multi-stage, non-root user, health check và Compose topology;
+- chat playground gọi đúng `POST /chat`, hiển thị token usage và chi phí.
+
+```powershell
+docker compose up -d --build
+# Mở http://localhost:8000
+```
+
+API token chỉ được nhập tại runtime và giữ trong bộ nhớ của tab. Giao diện
+không hardcode token, không ghi token vào `localStorage` và không mount
+`docker.sock` vào web service.
+
 ---
 
 ## ⚠️ Bài Làm Cá Nhân

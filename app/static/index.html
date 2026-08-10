@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Production dashboard cho Day 12 Chat Service: chat, health, CI/CD và Docker." />
+    <title>Day 12 · Production Console</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="topbar shell">
+      <a class="brand" href="/" aria-label="Day 12 Production Console">
+        <span class="brand-mark">D12</span>
+        <span>
+          <strong>Production Console</strong>
+          <small>Cloud Services &amp; Deployment</small>
+        </span>
+      </a>
+
+      <nav class="topnav" aria-label="Điều hướng chính">
+        <a href="#overview">Tổng quan</a>
+        <a href="#pipeline">CI/CD</a>
+        <a href="#runtime">Docker</a>
+        <a href="#playground">Chat</a>
+      </nav>
+
+      <a class="button button-ghost" href="/docs" target="_blank" rel="noreferrer">
+        API Docs <span aria-hidden="true">↗</span>
+      </a>
+    </header>
+
+    <main class="shell page">
+      <section class="hero" id="overview">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="pulse"></span> SERVICE ONLINE</div>
+          <h1>Một dịch vụ chat nhỏ,<br /><span>một pipeline production đầy đủ.</span></h1>
+          <p>
+            Quan sát health probe, Redis readiness, GitHub Actions và Docker runtime
+            trên cùng một màn hình. Không API token nào được lưu vào trình duyệt.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#playground">Thử chat ngay</a>
+            <a
+              class="button button-secondary"
+              href="https://github.com/quangha-dev/K4-DAY12-2A202601424-NguyenQuangHa"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Mở repository <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </div>
+
+        <aside class="service-card" aria-label="Trạng thái service">
+          <div class="card-heading">
+            <div>
+              <span class="overline">LIVE TELEMETRY</span>
+              <h2>Service status</h2>
+            </div>
+            <button class="icon-button" id="refresh-status" type="button" title="Làm mới trạng thái">↻</button>
+          </div>
+
+          <div class="status-row">
+            <div class="status-icon" data-state-icon="health">●</div>
+            <div><strong>Liveness</strong><small>GET /healthz</small></div>
+            <span class="status-pill is-loading" id="health-status">Đang kiểm tra</span>
+          </div>
+          <div class="status-row">
+            <div class="status-icon" data-state-icon="ready">●</div>
+            <div><strong>Redis readiness</strong><small>GET /readyz</small></div>
+            <span class="status-pill is-loading" id="ready-status">Đang kiểm tra</span>
+          </div>
+
+          <div class="service-meta"><span>day12-chat-service</span><span>v1.0.0</span></div>
+          <p class="last-check" id="last-check">Chưa có dữ liệu kiểm tra.</p>
+        </aside>
+      </section>
+
+      <section class="metrics" aria-label="Thông số kiến trúc">
+        <article><strong>3</strong><span>lớp bảo vệ API</span></article>
+        <article><strong>2</strong><span>health probes</span></article>
+        <article><strong>3</strong><span>CI/CD jobs</span></article>
+        <article><strong>0</strong><span>secret hardcoded</span></article>
+      </section>
+
+      <section class="section" id="pipeline">
+        <div class="section-heading">
+          <div>
+            <span class="overline">DELIVERY PIPELINE</span>
+            <h2>Từ một lần push đến production</h2>
+          </div>
+          <a
+            class="ci-badge-link"
+            href="https://github.com/quangha-dev/K4-DAY12-2A202601424-NguyenQuangHa/actions"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <img
+              src="https://github.com/quangha-dev/K4-DAY12-2A202601424-NguyenQuangHa/actions/workflows/ci.yml/badge.svg"
+              alt="Trạng thái GitHub Actions CI"
+            />
+          </a>
+        </div>
+
+        <div class="pipeline" aria-label="Các bước CI/CD">
+          <article class="pipeline-step">
+            <div class="step-index">01</div><div class="step-symbol">⌁</div>
+            <h3>Push to main</h3>
+            <p>GitHub nhận commit và khởi động workflow theo trigger.</p>
+            <span>push · pull_request</span>
+          </article>
+          <div class="connector" aria-hidden="true">→</div>
+          <article class="pipeline-step">
+            <div class="step-index">02</div><div class="step-symbol">✓</div>
+            <h3>Test</h3>
+            <p>Python 3.11 cài dependency và chạy toàn bộ checkpoint offline.</p>
+            <span>pytest · fake Redis</span>
+          </article>
+          <div class="connector" aria-hidden="true">→</div>
+          <article class="pipeline-step">
+            <div class="step-index">03</div><div class="step-symbol">⬡</div>
+            <h3>Build image</h3>
+            <p>Runner sạch build Docker image multi-stage từ đúng commit.</p>
+            <span>BuildKit · non-root</span>
+          </article>
+          <div class="connector" aria-hidden="true">→</div>
+          <article class="pipeline-step is-accent">
+            <div class="step-index">04</div><div class="step-symbol">↗</div>
+            <h3>Deploy Render</h3>
+            <p>Deploy hook chạy sau test/build và chờ health check trả 200.</p>
+            <span>/healthz · production</span>
+          </article>
+        </div>
+
+        <div class="pipeline-footer">
+          <div><span class="dot dot-green"></span> Workflow dùng action đã ghim phiên bản</div>
+          <div><span class="dot dot-blue"></span> Secret nằm trong GitHub Secrets</div>
+          <a
+            href="https://github.com/quangha-dev/K4-DAY12-2A202601424-NguyenQuangHa/blob/main/.github/workflows/ci.yml"
+            target="_blank"
+            rel="noreferrer"
+          >Xem ci.yml ↗</a>
+        </div>
+      </section>
+
+      <section class="section" id="runtime">
+        <div class="section-heading">
+          <div>
+            <span class="overline">CONTAINER RUNTIME</span>
+            <h2>Docker nhỏ gọn, tách biệt và có thể quan sát</h2>
+          </div>
+          <span class="runtime-label">python:3.11-slim</span>
+        </div>
+
+        <div class="runtime-grid">
+          <article class="terminal-card">
+            <div class="terminal-bar"><span></span><span></span><span></span><small>production.Dockerfile</small></div>
+            <div class="docker-stage">
+              <span class="stage-number">01</span>
+              <div><strong>builder</strong><small>requirements → /install</small></div>
+              <span class="stage-chip">BUILD</span>
+            </div>
+            <div class="stage-arrow">↓ chỉ copy dependency đã cài</div>
+            <div class="docker-stage stage-runtime">
+              <span class="stage-number">02</span>
+              <div><strong>runtime</strong><small>app + utils + slim base</small></div>
+              <span class="stage-chip">RUN</span>
+            </div>
+            <pre><code><span>USER</span> appuser<br><span>HEALTHCHECK</span> GET /healthz<br><span>CMD</span> uvicorn --port $PORT</code></pre>
+          </article>
+
+          <div class="runtime-features">
+            <article><span class="feature-icon">♙</span><div><h3>Non-root process</h3><p>UID 10001 giới hạn quyền khi runtime bị khai thác.</p></div></article>
+            <article><span class="feature-icon">♡</span><div><h3>Self health check</h3><p>Python stdlib gọi /healthz, không cần cài curl vào image.</p></div></article>
+            <article><span class="feature-icon">↔</span><div><h3>Dynamic port</h3><p>Cùng image chạy cổng 8000 local hoặc $PORT trên Render.</p></div></article>
+            <article><span class="feature-icon">▤</span><div><h3>Shared Redis state</h3><p>History, rate limit và cost guard dùng chung giữa replica.</p></div></article>
+          </div>
+
+          <article class="compose-card">
+            <span class="overline">LOCAL STACK</span>
+            <h3>Docker Compose</h3>
+            <div class="topology">
+              <div><span>API</span><strong>chat</strong><small>:8000</small></div>
+              <span>⇄</span>
+              <div><span>DATA</span><strong>redis</strong><small>:6379</small></div>
+            </div>
+            <button class="command" type="button" data-copy="docker compose up -d --build">
+              <code>docker compose up -d --build</code><span>Sao chép</span>
+            </button>
+            <button class="command" type="button" data-copy="docker compose ps">
+              <code>docker compose ps</code><span>Sao chép</span>
+            </button>
+            <p class="security-note">Docker socket không được mount vào web service.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section playground-section" id="playground">
+        <div class="section-heading">
+          <div><span class="overline">PROTECTED ENDPOINT</span><h2>Chat playground</h2></div>
+          <span class="secure-label">Bearer token · in-memory only</span>
+        </div>
+
+        <div class="playground-grid">
+          <aside class="credentials-card">
+            <h3>Kết nối API</h3>
+            <p>Nhập credential của service để gọi <code>POST /chat</code>.</p>
+            <label for="client-id">Client ID</label>
+            <input id="client-id" type="text" value="web-dashboard" maxlength="80" />
+            <label for="api-token">API token</label>
+            <div class="password-field">
+              <input id="api-token" type="password" placeholder="Nhập Bearer token" autocomplete="off" spellcheck="false" />
+              <button id="toggle-token" type="button" aria-label="Hiện hoặc ẩn token">Hiện</button>
+            </div>
+            <small class="input-note">Token không được ghi vào localStorage hoặc gửi sang domain khác.</small>
+            <div class="guard-list">
+              <span><b>401</b> Authentication</span>
+              <span><b>429</b> Token bucket</span>
+              <span><b>402</b> Daily budget</span>
+            </div>
+          </aside>
+
+          <article class="chat-card">
+            <div class="chat-header">
+              <div>
+                <span class="avatar">AI</span>
+                <div><strong>Mock LLM Agent</strong><small><span class="dot dot-green"></span> Offline model</small></div>
+              </div>
+              <button id="clear-chat" class="text-button" type="button">Xóa hội thoại</button>
+            </div>
+            <div class="messages" id="messages" aria-live="polite">
+              <div class="message assistant">
+                <span class="message-label">AGENT</span>
+                <p>Xin chào! Hãy nhập API token và hỏi tôi về cloud deployment.</p>
+              </div>
+            </div>
+            <div class="usage-bar" id="usage-bar" hidden>
+              <span>Prompt <b id="prompt-usage">0</b></span>
+              <span>Completion <b id="completion-usage">0</b></span>
+              <span>Cost <b id="cost-usage">$0</b></span>
+            </div>
+            <form class="composer" id="chat-form">
+              <textarea id="message-input" rows="1" maxlength="2000" placeholder="Hỏi về Docker, CI/CD hoặc deployment..." aria-label="Tin nhắn"></textarea>
+              <button class="send-button" id="send-message" type="submit" aria-label="Gửi tin nhắn">↑</button>
+            </form>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer shell">
+      <div><span class="brand-mark brand-mark-small">D12</span> Day 12 Production Console</div>
+      <p>FastAPI · Redis · Docker · Render · GitHub Actions</p>
+      <a href="/openapi.json" target="_blank" rel="noreferrer">OpenAPI JSON ↗</a>
+    </footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
