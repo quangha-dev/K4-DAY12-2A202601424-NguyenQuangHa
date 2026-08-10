@@ -10,7 +10,7 @@ gọi được, có bảo mật, có giới hạn chi phí, và không sập khi
 Mở route gốc `/` để xem giao diện vận hành trực quan:
 
 - trạng thái liveness `/healthz` và Redis readiness `/readyz`;
-- workflow GitHub Actions theo luồng Test → Build Docker → Deploy Render;
+- workflow GitHub Actions theo luồng Test → Build Docker → Deploy Render và VPS;
 - cấu trúc Docker multi-stage, non-root user, health check và Compose topology;
 - chat playground gọi đúng `POST /chat`, hiển thị token usage và chi phí.
 
@@ -22,6 +22,17 @@ docker compose up -d --build
 API token chỉ được nhập tại runtime và giữ trong bộ nhớ của tab. Giao diện
 không hardcode token, không ghi token vào `localStorage` và không mount
 `docker.sock` vào web service.
+
+### Production targets
+
+| Đích deploy | Public URL | Cách triển khai |
+|---|---|---|
+| Render | https://k4-day12-2a202601424-nguyenquangha.onrender.com | Deploy Hook sau Quality Gate |
+| Contabo VPS | https://miraculum.duckdns.org | SSH đúng commit SHA → Docker Compose → Nginx HTTPS |
+
+VPS chỉ public cổng 80/443 qua Nginx. FastAPI bind vào `127.0.0.1:8000`, còn
+Redis chỉ nằm trong Docker network và không mở cổng 6379 ra host. Workflow dùng
+tài khoản `deploy-day12` và SSH key riêng thay vì đăng nhập root.
 
 ---
 

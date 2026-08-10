@@ -217,35 +217,35 @@
           <div class="lane-down success-down" aria-hidden="true"><span>push main + test/build xanh</span>↓</div>
 
           <div class="pipeline-lane lane-cd">
-            <div class="lane-label"><span>CD</span><strong>GitHub Actions → Render</strong></div>
+            <div class="lane-label"><span>CD</span><strong>GitHub Actions → Render &amp; VPS</strong></div>
             <div class="lane-content cd-grid">
               <article class="flow-node node-cd">
                 <span class="flow-number">06</span>
                 <div class="flow-icon">🔐</div>
                 <div>
-                  <h3>Gọi Deploy Hook</h3>
-                  <p>Job Deploy lấy URL từ GitHub Secret rồi gửi HTTP POST tới Render.</p>
-                  <code>RENDER_DEPLOY_HOOK_URL</code>
+                  <h3>Mở hai nhánh CD</h3>
+                  <p>GitHub chỉ đọc credential đã mã hóa sau khi Test và Build đều thành công.</p>
+                  <code>Render Hook · VPS SSH key</code>
                 </div>
               </article>
               <div class="flow-arrow" aria-hidden="true"><span>POST</span>→</div>
               <article class="flow-node node-cd">
-                <span class="flow-number">07</span>
+                <span class="flow-number">07A</span>
                 <div class="flow-icon">◈</div>
                 <div>
-                  <h3>Render tạo deployment</h3>
-                  <p>Render lấy code mới nhất của <code>main</code> và tự build lại bằng Dockerfile.</p>
-                  <code>Dockerfile → production image</code>
+                  <h3>Deploy Render</h3>
+                  <p>Deploy Hook yêu cầu Render lấy <code>main</code>, build Dockerfile và inject biến môi trường.</p>
+                  <code>Render · managed platform</code>
                 </div>
               </article>
-              <div class="flow-arrow" aria-hidden="true"><span>start</span>→</div>
+              <div class="flow-arrow" aria-hidden="true"><span>SSH</span>→</div>
               <article class="flow-node node-cd">
-                <span class="flow-number">08</span>
+                <span class="flow-number">07B</span>
                 <div class="flow-icon">▶</div>
                 <div>
-                  <h3>Khởi động service</h3>
-                  <p>Render inject biến môi trường, kết nối Redis và chạy Uvicorn trên <code>$PORT</code>.</p>
-                  <code>API_TOKEN · REDIS_URL</code>
+                  <h3>Deploy VPS</h3>
+                  <p>SSH checkout đúng commit SHA rồi chạy Compose; Nginx chuyển HTTPS vào API nội bộ.</p>
+                  <code>deploy_vps.sh · rollback</code>
                 </div>
               </article>
             </div>
@@ -261,8 +261,8 @@
                 <div class="flow-icon">♡</div>
                 <div>
                   <h3>Health verification</h3>
-                  <p>GitHub Actions gọi URL public cho tới khi liveness trả HTTP 200.</p>
-                  <code>GET /healthz → 200 OK</code>
+                  <p>Mỗi job gọi URL public của đích deploy cho tới khi liveness trả HTTP 200.</p>
+                  <code>Render + VPS /healthz → 200</code>
                 </div>
               </article>
               <div class="flow-arrow" aria-hidden="true"><span>healthy</span>→</div>
@@ -283,7 +283,7 @@
           <div class="presentation-note-title"><span>🎤</span><strong>Cách trình bày sơ đồ</strong></div>
           <p>
             <b>CI</b> trả lời “commit có vượt qua kiểm thử và đóng gói được không?”.
-            <b>CD</b> chỉ bắt đầu sau Quality Gate, gọi Render triển khai và xác nhận service sống.
+            <b>CD</b> chỉ bắt đầu sau Quality Gate, triển khai độc lập lên Render và VPS rồi xác nhận cả hai service sống.
             Pull Request đi qua CI nhưng bị bỏ qua bước Deploy; chỉ <code>push main</code> mới thay đổi production.
           </p>
         </aside>
@@ -291,7 +291,7 @@
         <div class="pipeline-footer">
           <div><span class="dot dot-green"></span> Actions được ghim phiên bản</div>
           <div><span class="dot dot-blue"></span> Secret không xuất hiện trong source</div>
-          <div><span class="dot dot-amber"></span> GitHub build để kiểm chứng; Render build để chạy</div>
+          <div><span class="dot dot-amber"></span> GitHub kiểm chứng; Render và VPS build để chạy</div>
           <a
             href="https://github.com/quangha-dev/K4-DAY12-2A202601424-NguyenQuangHa/blob/main/.github/workflows/ci.yml"
             target="_blank"
@@ -329,7 +329,7 @@
           <div class="runtime-features">
             <article><span class="feature-icon">♙</span><div><h3>Non-root process</h3><p>UID 10001 giới hạn quyền khi runtime bị khai thác.</p></div></article>
             <article><span class="feature-icon">♡</span><div><h3>Self health check</h3><p>Python stdlib gọi /healthz, không cần cài curl vào image.</p></div></article>
-            <article><span class="feature-icon">↔</span><div><h3>Dynamic port</h3><p>Cùng image chạy cổng 8000 local hoặc $PORT trên Render.</p></div></article>
+            <article><span class="feature-icon">↔</span><div><h3>Dynamic port</h3><p>Cùng image chạy $PORT trên Render hoặc cổng nội bộ 8000 sau Nginx trên VPS.</p></div></article>
             <article><span class="feature-icon">▤</span><div><h3>Shared Redis state</h3><p>History, rate limit và cost guard dùng chung giữa replica.</p></div></article>
           </div>
 
@@ -407,7 +407,7 @@
 
     <footer class="footer shell">
       <div><span class="brand-mark brand-mark-small">D12</span> Day 12 Production Console</div>
-      <p>FastAPI · Redis · Docker · Render · GitHub Actions</p>
+      <p>FastAPI · Redis · Docker · Render · VPS · Nginx · GitHub Actions</p>
       <a href="/openapi.json" target="_blank" rel="noreferrer">OpenAPI JSON ↗</a>
     </footer>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

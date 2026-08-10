@@ -99,3 +99,39 @@ pytest tests/test_cp5.py -v
 
 - `screenshots/dashboard.png` — trang quản lý service trên platform
 - `screenshots/healthz.png` — kết quả gọi `/healthz` từ trình duyệt hoặc curl
+
+## Bản Triển Khai VPS Bổ Sung
+
+| Mục | Nội dung |
+|-----|----------|
+| Public URL | https://miraculum.duckdns.org |
+| Nhà cung cấp | Contabo VPS |
+| Hệ điều hành | Ubuntu 24.04 LTS |
+| Reverse proxy | Nginx + HTTPS |
+| Runtime | Docker Compose |
+| Auto-deploy | GitHub Actions khi push vào `main` |
+
+Kiến trúc VPS:
+
+```text
+Internet :443
+    ↓
+Nginx HTTPS
+    ↓ 127.0.0.1:8000
+FastAPI container
+    ↓ Docker network
+Redis container + persistent volume
+```
+
+Các secret `VPS_HOST`, `VPS_USER`, `VPS_SSH_PRIVATE_KEY` và
+`VPS_SSH_KNOWN_HOSTS` nằm trong GitHub Actions Secrets. Repository chỉ ghi tên
+secret, không chứa giá trị. URL không nhạy cảm được lưu trong biến
+`VPS_PUBLIC_URL`.
+
+Kết quả kiểm tra sau khi chuyển traffic:
+
+```text
+GET https://miraculum.duckdns.org/healthz -> 200
+GET https://miraculum.duckdns.org/readyz  -> 200
+POST /chat không Bearer token             -> 401
+```
