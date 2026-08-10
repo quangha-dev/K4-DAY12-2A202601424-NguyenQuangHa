@@ -74,7 +74,23 @@ done; echo
 Dán output của các lệnh trên vào đây:
 
 ```text
-Kết quả sẽ được cập nhật ngay sau lần deploy đầu tiên.
+[2026-08-10 15:33:15 +07:00]
+GET /healthz
+  -> 200 {"status":"ok","service":"day12-chat-service","version":"1.0.0"}
+
+GET /readyz
+  -> 200 {"status":"ready","redis":true}
+
+POST /chat (không có Authorization)
+  -> 401, WWW-Authenticate: Bearer
+  -> {"detail":"invalid or missing bearer token"}
+
+POST /chat (Bearer token hợp lệ, giá trị không ghi vào tài liệu)
+  -> 200, response có reply, client_id, usd_cost và usage
+
+pytest tests/test_cp5.py -v
+  -> 9 passed, 4 skipped
+  -> 4 test skipped thuộc nhánh LOCAL_FALLBACK, không áp dụng vì đang dùng cloud.
 ```
 
 ## Ảnh Chụp Màn Hình

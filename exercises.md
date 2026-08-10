@@ -3,10 +3,10 @@
 > **Bài làm cá nhân.** Trả lời bằng lời của chính bạn, dựa trên những gì bạn
 > quan sát được khi chạy code — không sao chép đáp án của người khác.
 >
-> Cách trả lời: thay dòng `> *Câu trả lời của bạn*` bằng câu trả lời.
+> Cách trả lời: thay dòng trả lời mẫu bên dưới bằng câu trả lời của bạn.
 > `grade.py` đếm số câu đã trả lời (15 điểm cho 10 câu).
 >
-> Họ và tên: ..........................  Mã học viên: ..........................
+> Họ và tên: Nguyễn Quang Hà  Mã học viên: 2A202601424
 
 ---
 
@@ -159,4 +159,15 @@ Ghi lại **một** lỗi bạn gặp khi deploy lên cloud (build fail, health 
 timeout, sai REDIS_URL, app không đọc `$PORT`...): thông báo lỗi là gì, bạn
 tìm ra nguyên nhân bằng cách nào, và sửa ra sao?
 
-> *Câu trả lời của bạn*
+Lần deploy đầu tiên trên Render báo `Timed out after waiting for internal
+health check to return a successful response code at ...:10000/healthz`.
+Tôi mở log và thấy image build thành công, Uvicorn cũng bind đúng
+`0.0.0.0:10000`, nhưng instance đầu mất hơn 11 phút mới khởi động và không
+nhận được request health check nội bộ trước khi hết hạn 15 phút. Tôi đối chiếu
+bằng cách chạy chính image đó ở local với `PORT=10000`; `/healthz` trả 200 nên
+loại trừ lỗi Dockerfile và endpoint. Tôi giữ nguyên cấu hình đúng rồi chọn
+`Deploy latest commit` để Render cấp lại instance. Lần thứ hai Uvicorn khởi
+động sau 16 giây, log ghi nhiều request `GET /healthz 200 OK`, service chuyển
+sang `live`; sau đó `/readyz` trả 200, `/chat` thiếu token trả 401 và request có
+Bearer token hợp lệ trả 200. Đây là lỗi cấp/routing instance tạm thời, không
+phải lỗi mã nguồn.
