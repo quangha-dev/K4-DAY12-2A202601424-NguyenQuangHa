@@ -83,7 +83,7 @@
       <section class="metrics" aria-label="Thông số kiến trúc">
         <article><strong>3</strong><span>lớp bảo vệ API</span></article>
         <article><strong>2</strong><span>health probes</span></article>
-        <article><strong>3</strong><span>CI/CD jobs</span></article>
+        <article><strong>4</strong><span>CI/CD jobs</span></article>
         <article><strong>0</strong><span>secret hardcoded</span></article>
       </section>
 
@@ -109,11 +109,157 @@
         <div class="pipeline-legend" aria-label="Chú thích sơ đồ">
           <span><i class="legend-dot trigger"></i> Git / Trigger</span>
           <span><i class="legend-dot ci"></i> Continuous Integration</span>
-          <span><i class="legend-dot cd"></i> Continuous Delivery</span>
-          <span><i class="legend-dot guard"></i> Nhánh chặn lỗi</span>
+          <span><i class="legend-dot render"></i> Render managed cloud</span>
+          <span><i class="legend-dot vps"></i> VPS self-managed</span>
         </div>
 
-        <div class="cicd-diagram" aria-label="Sơ đồ chi tiết GitHub Actions và CI/CD">
+        <div class="delivery-board">
+          <section class="shared-ci-panel" aria-labelledby="shared-ci-title">
+            <div class="diagram-heading">
+              <span class="diagram-kicker">PHẦN DÙNG CHUNG · CI</span>
+              <h3 id="shared-ci-title">Một commit phải qua Quality Gate trước khi được triển khai</h3>
+              <p>Pull Request chỉ chạy CI. Hai nhánh CD bên dưới chỉ mở khi có push vào <code>main</code>.</p>
+            </div>
+
+            <div class="shared-flow" aria-label="Luồng Continuous Integration dùng chung">
+              <article class="bright-step step-git">
+                <span class="step-index">01</span>
+                <b>Developer push</b>
+                <small>Commit được gửi lên GitHub</small>
+                <code>push / pull_request</code>
+              </article>
+              <span class="bright-arrow" aria-hidden="true">→</span>
+              <article class="bright-step step-ci">
+                <span class="step-index">02A</span>
+                <b>Test</b>
+                <small>Python 3.11 · pytest CP1–CP4</small>
+                <code>API_TOKEN=ci-dummy</code>
+              </article>
+              <article class="bright-step step-ci">
+                <span class="step-index">02B</span>
+                <b>Build Docker</b>
+                <small>Multi-stage · non-root runtime</small>
+                <code>day12-chat:$SHA</code>
+              </article>
+              <span class="bright-arrow" aria-hidden="true">→</span>
+              <article class="bright-step step-gate">
+                <span class="step-index">03</span>
+                <b>Quality Gate</b>
+                <small>Cả Test và Build phải xanh</small>
+                <code>needs: [test, build]</code>
+              </article>
+            </div>
+
+            <div class="gate-result">
+              <span><b>FAIL</b> Dừng pipeline, production cũ vẫn chạy</span>
+              <span><b>PASS + main</b> Mở đồng thời hai nhánh CD độc lập</span>
+            </div>
+          </section>
+
+          <div class="deployment-split" aria-hidden="true">
+            <span></span><b>CD tách thành hai đích triển khai</b><span></span>
+          </div>
+
+          <section class="deploy-panel render-panel" id="render-pipeline" aria-labelledby="render-title">
+            <div class="deploy-panel-heading">
+              <div class="platform-logo render-logo">R</div>
+              <div>
+                <span class="diagram-kicker">SƠ ĐỒ 1 · RENDER</span>
+                <h3 id="render-title">Managed Cloud Deployment</h3>
+                <p>Render quản lý máy chủ, TLS và vòng đời container; nhóm chỉ cấu hình service và biến môi trường.</p>
+              </div>
+              <span class="platform-type">PLATFORM MANAGED</span>
+            </div>
+
+            <div class="platform-flow render-flow" aria-label="Các bước deploy riêng lên Render">
+              <article class="bright-step"><span class="step-index">R1</span><b>GitHub Actions</b><small>Job <code>deploy</code> chạy sau Quality Gate</small></article>
+              <span class="bright-arrow" aria-hidden="true">→</span>
+              <article class="bright-step"><span class="step-index">R2</span><b>Deploy Hook</b><small>Token nằm trong GitHub Secret</small></article>
+              <span class="bright-arrow" aria-hidden="true">→</span>
+              <article class="bright-step"><span class="step-index">R3</span><b>Render Build</b><small>Build <code>Dockerfile</code> từ nhánh main</small></article>
+              <span class="bright-arrow" aria-hidden="true">→</span>
+              <article class="bright-step"><span class="step-index">R4</span><b>Inject Config</b><small><code>API_TOKEN</code>, <code>REDIS_URL</code>, <code>PORT</code></small></article>
+              <span class="bright-arrow" aria-hidden="true">→</span>
+              <article class="bright-step step-live"><span class="step-index">R5</span><b>Health → Live</b><small><code>/healthz</code> trả HTTP 200</small></article>
+            </div>
+
+            <div class="render-summary">
+              <span><b>Ứng dụng</b> Docker Web Service</span>
+              <span><b>Dữ liệu</b> Redis URL được quản lý</span>
+              <span><b>HTTPS</b> Render cấp tự động</span>
+              <span><b>Vận hành</b> Auto deploy + dashboard logs</span>
+            </div>
+          </section>
+
+          <section class="deploy-panel vps-panel" id="vps-pipeline" aria-labelledby="vps-title">
+            <div class="deploy-panel-heading">
+              <div class="platform-logo vps-logo">V</div>
+              <div>
+                <span class="diagram-kicker">SƠ ĐỒ 2 · VPS</span>
+                <h3 id="vps-title">Self-managed VPS Deployment</h3>
+                <p>Nhóm tự chịu trách nhiệm từ SSH, Docker, reverse proxy và chứng chỉ HTTPS đến firewall, backup và rollback.</p>
+              </div>
+              <span class="platform-type">SELF MANAGED</span>
+            </div>
+
+            <div class="vps-diagrams">
+              <div class="vps-diagram-card">
+                <div class="subdiagram-title"><span>A</span><div><b>Luồng triển khai</b><small>GitHub Actions → VPS</small></div></div>
+                <div class="vertical-flow" aria-label="Luồng GitHub Actions deploy vào VPS">
+                  <article><span>V1</span><div><b>Đọc GitHub Secrets</b><small><code>VPS_HOST</code>, <code>VPS_USER</code>, SSH private key và known hosts</small></div></article>
+                  <i aria-hidden="true">↓</i>
+                  <article><span>V2</span><div><b>SSH bằng deploy user</b><small>Kết nối tới VPS bằng key; không ghi mật khẩu trong workflow</small></div></article>
+                  <i aria-hidden="true">↓</i>
+                  <article><span>V3</span><div><b>Checkout đúng commit</b><small><code>git checkout -B main $GITHUB_SHA</code> tránh deploy nhầm phiên bản</small></div></article>
+                  <i aria-hidden="true">↓</i>
+                  <article><span>V4</span><div><b>Chạy deploy_vps.sh</b><small>Build image gắn SHA, chạy Compose và chờ health check</small></div></article>
+                  <i aria-hidden="true">↓</i>
+                  <article class="vertical-live"><span>V5</span><div><b>Verify hoặc rollback</b><small>Public <code>/healthz</code> phải 200; lỗi thì quay về image trước</small></div></article>
+                </div>
+              </div>
+
+              <div class="vps-diagram-card">
+                <div class="subdiagram-title"><span>B</span><div><b>Kiến trúc request</b><small>Internet → ứng dụng → dữ liệu</small></div></div>
+                <div class="request-map" aria-label="Kiến trúc dịch vụ đang chạy trên VPS">
+                  <article class="map-public"><span>INTERNET</span><b>Người dùng</b><small>https://miraculum.duckdns.org</small></article>
+                  <i aria-hidden="true">↓ HTTPS :443</i>
+                  <article class="map-edge"><span>VPS HOST</span><b>Nginx + TLS</b><small>Reverse proxy · HTTP 80 → HTTPS 443</small></article>
+                  <i aria-hidden="true">↓ 127.0.0.1:8000</i>
+                  <div class="docker-boundary">
+                    <label>DOCKER COMPOSE PRIVATE NETWORK</label>
+                    <article class="map-api"><span>CONTAINER</span><b>day12-chat</b><small>appuser · read-only · healthcheck</small></article>
+                    <i aria-hidden="true">↓ redis:6379</i>
+                    <article class="map-data"><span>CONTAINER</span><b>day12-redis</b><small>Không public port · persistent volume</small></article>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="vps-config-title"><span>C</span><div><b>Cấu hình production trên VPS</b><small>Mỗi lớp giải quyết một rủi ro riêng</small></div></div>
+            <div class="vps-config-grid">
+              <article><b>SSH &amp; deploy user</b><p>Dùng tài khoản <code>deploy-day12</code> và SSH key riêng cho Actions; key được giới hạn trong <code>authorized_keys</code>.</p></article>
+              <article><b>Secret ngoài repository</b><p>Runtime đọc <code>/opt/k4-day12-secrets/app.env</code>, quyền <code>600</code>; không commit API token hoặc Redis credential.</p></article>
+              <article><b>Container hardening</b><p>API chạy non-root, filesystem read-only, <code>cap_drop: ALL</code>, <code>no-new-privileges</code> và giới hạn log.</p></article>
+              <article><b>Network isolation</b><p>API chỉ bind <code>127.0.0.1:8000</code>. Redis không map port ra host và chỉ được API truy cập qua private network.</p></article>
+              <article><b>Nginx &amp; HTTPS</b><p>Nginx nhận traffic public trên 80/443, terminate TLS rồi proxy tới API nội bộ; certificate cần được gia hạn.</p></article>
+              <article><b>Firewall &amp; persistence</b><p>UFW chỉ mở 22, 80, 443. Redis dùng named volume để dữ liệu còn sau khi container được recreate.</p></article>
+            </div>
+
+            <aside class="vps-checklist">
+              <div class="checklist-heading"><span>!</span><div><b>Lưu ý khi triển khai VPS</b><small>Checklist trước khi đưa service lên production</small></div></div>
+              <ol>
+                <li>Trỏ DNS A record tới đúng IP VPS trước khi xin chứng chỉ HTTPS.</li>
+                <li>Chỉ lưu private key trong GitHub Secrets; VPS chỉ nhận public key.</li>
+                <li>Không mở cổng 6379 và không bind API trực tiếp ra <code>0.0.0.0:8000</code>.</li>
+                <li>Kiểm tra <code>docker compose ps</code>, logs, <code>/healthz</code> và <code>/readyz</code> sau mỗi lần deploy.</li>
+                <li>Sao lưu volume Redis và file cấu hình trước khi nâng cấp; giữ image cũ để rollback.</li>
+                <li>Theo dõi dung lượng đĩa, memory, certificate expiry và xoay token khi nghi ngờ bị lộ.</li>
+              </ol>
+            </aside>
+          </section>
+        </div>
+
+        <div class="cicd-diagram" aria-label="Sơ đồ chi tiết GitHub Actions và CI/CD phiên bản cũ" hidden>
           <div class="pipeline-lane lane-git">
             <div class="lane-label"><span>GIT</span><strong>Developer &amp; GitHub</strong></div>
             <div class="lane-content lane-linear">
@@ -282,9 +428,10 @@
         <aside class="presentation-note">
           <div class="presentation-note-title"><span>🎤</span><strong>Cách trình bày sơ đồ</strong></div>
           <p>
-            <b>CI</b> trả lời “commit có vượt qua kiểm thử và đóng gói được không?”.
-            <b>CD</b> chỉ bắt đầu sau Quality Gate, triển khai độc lập lên Render và VPS rồi xác nhận cả hai service sống.
-            Pull Request đi qua CI nhưng bị bỏ qua bước Deploy; chỉ <code>push main</code> mới thay đổi production.
+            Bắt đầu từ <b>phần CI dùng chung</b>: commit phải vượt qua Test và Build.
+            Sau Quality Gate, trình bày <b>Sơ đồ 1 — Render</b> như nền tảng được quản lý, rồi chuyển sang
+            <b>Sơ đồ 2 — VPS</b> để giải thích hai hướng: luồng deploy bằng SSH và luồng request qua Nginx đến Docker/Redis.
+            Pull Request chỉ kiểm tra code; chỉ <code>push main</code> mới thay đổi production.
           </p>
         </aside>
 
